@@ -11,6 +11,10 @@ st.set_page_config(
     layout="wide"
 )
 
+# Initialize session state for email text
+if 'email_text' not in st.session_state:
+    st.session_state.email_text = ""
+
 # Custom CSS (properly formatted)
 st.markdown("""
 <style>
@@ -68,12 +72,18 @@ def main():
     # Load models
     models, vectorizer = load_models()
     
-    # Input area
+    # Input area - now bound to session state
     email_text = st.text_area(
         "Paste email content here:", 
         height=200,
-        help="The system will analyze the text for phishing indicators"
+        value=st.session_state.email_text,
+        help="The system will analyze the text for phishing indicators",
+        key="email_input"
     )
+    
+    # Update session state when text area changes
+    if email_text != st.session_state.email_text:
+        st.session_state.email_text = email_text
     
     # Sample emails
     col1, col2 = st.columns(2)
@@ -87,7 +97,8 @@ def main():
             http://fake-bank.com/secure-login
             
             Click the link within 24 hours to avoid account termination."""
-            
+            st.rerun()  # Refresh to update the text area
+    
     with col2:
         if st.button("Load Safe Example"):
             st.session_state.email_text = """Meeting Reminder
@@ -100,20 +111,21 @@ def main():
             Best regards,
             John Smith
             HR Department"""
+            st.rerun()  # Refresh to update the text area
     
     if st.button("Analyze Email", type="primary"):
-        if not email_text.strip():
+        if not st.session_state.email_text.strip():
             st.warning("Please enter email content to analyze")
             return
             
         try:
             # Preprocess and vectorize
-            processed_text = preprocess_text(email_text)
+            processed_text = preprocess_text(st.session_state.email_text)
             X = vectorizer.transform([processed_text])
             
             # Display analysis
             st.subheader("Email Analysis")
-            st.markdown(highlight_keywords(email_text), unsafe_allow_html=True)
+            st.markdown(highlight_keywords(st.session_state.email_text), unsafe_allow_html=True)
             
             # Model predictions
             st.subheader("Model Predictions")
